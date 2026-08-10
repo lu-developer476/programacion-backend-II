@@ -10,9 +10,9 @@ export default class ProductRouter extends CustomRouter {
             try {
                 const result = await repository.getAll(req.query);
                 const base = `${req.protocol}://${req.get('host')}${req.baseUrl}`;
-                const query = new URLSearchParams(req.query);
-                const link = (page) => `${base}?${new URLSearchParams({ ...Object.fromEntries(query), page }).toString()}`;
-                return res.sendSuccess({
+                const link = (page) => `${base}?${new URLSearchParams({ ...req.query, page }).toString()}`;
+                return res.status(200).json({
+                    status: 'success',
                     payload: result.docs,
                     totalPages: result.totalPages,
                     prevPage: result.prevPage,
@@ -38,9 +38,7 @@ export default class ProductRouter extends CustomRouter {
         this.post('/', ['ADMIN'], async (req, res) => {
             try {
                 const { title, description, price, stock, code, category } = req.body;
-                if (!title || !description || price === undefined || stock === undefined || !code || !category) {
-                    return res.sendUserError('Faltan campos obligatorios');
-                }
+                if (!title || !description || price === undefined || stock === undefined || !code || !category) return res.sendUserError('Faltan campos obligatorios');
                 const product = await repository.create({ title, description, price, stock, code, category });
                 return res.sendSuccess(product, 201);
             } catch (error) {
