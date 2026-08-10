@@ -1,102 +1,149 @@
-# Proyecto Final - Backend II
+# Proyecto Final — Programación Backend II
 
-Este repositorio contiene la entrega final del curso de **Programación Backend II: Diseño y Arquitectura**.
+API REST de e-commerce desarrollada con Node.js, Express y MongoDB. El proyecto aplica arquitectura por capas, DAO, Repository, DTO, autenticación JWT, autorización por roles, hashing de contraseñas y recuperación segura de contraseña.
 
-El proyecto consiste en la creación de un servidor robusto y escalable para un e-commerce, aplicando buenas prácticas de desarrollo, seguridad y arquitectura profesional.
+## Tecnologías
 
-## Funcionalidades Principales
-
-Este servidor fue desarrollado priorizando la modularidad, escalabilidad y seguridad.
-
-### Arquitectura
-- Implementación del **Patrón Repository**.
-- Uso de la capa **DAO (Data Access Object)** para desacoplar la lógica de negocio del acceso a datos.
-
-### Seguridad
-- Implementación de **DTOs (Data Transfer Objects)** en la ruta `/current` para proteger información sensible de los usuarios.
-- Sistema seguro de **recuperación de contraseña** mediante:
-  - Envío de correos electrónicos con tokens únicos.
-  - Expiración automática del token después de 1 hora.
-  - Validación para impedir la reutilización de contraseñas anteriores.
-
-### Autorización
-Middleware integrado con la estrategia **current** para gestionar permisos según el rol del usuario:
-
-- **Administrador:** gestión completa de productos.
-- **Usuario:** gestión de carrito y proceso de compra.
-
-### Lógica de Compra
-- Generación de tickets de compra.
-- Validación de stock disponible.
-- Persistencia de transacciones realizadas.
-
-### Herramientas Complementarias
-- Manejo de variables de entorno con Dotenv.
-- Envío de correos electrónicos con Nodemailer.
-- Hashing de contraseñas mediante Bcrypt.
-- Autenticación basada en JWT.
-
-## Tecnologías Utilizadas
-
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT (JSON Web Tokens)
-- Bcrypt
+- Node.js + Express
+- MongoDB + Mongoose
+- JWT
+- bcrypt
 - Nodemailer
-- Dotenv
+- dotenv
 
-## Instalación y Configuración
+## Arquitectura
 
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/tu-usuario/backend_ii_proyecto_final_2.git
-cd backend_ii_proyecto_final_2
+```text
+src/
+├── app.js
+├── config/
+├── dao/
+│   ├── models/
+│   └── mongo/
+├── dtos/
+├── repositories/
+└── routes/
 ```
 
-### 2. Instalar dependencias
+Las rutas reciben las solicitudes HTTP, los repositorios abstraen la lógica de acceso y los DAOs encapsulan la persistencia en MongoDB. Los DTOs evitan exponer la contraseña y otros datos sensibles.
+
+## Instalación
 
 ```bash
+git clone https://github.com/lu-developer476/programacion-backend-II.git
+cd programacion-backend-II
 npm install
 ```
 
-### 3. Configurar variables de entorno
-
-Crear un archivo `.env` en la raíz del proyecto siguiendo el ejemplo de `.env.example`.
+Copiar `.env.example` como `.env` y completar al menos:
 
 ```env
 PORT=8080
-MONGO_URL=
+MONGO_URL=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/backendII
+JWT_SECRET=un-secreto-largo-y-privado
 MAIL_USER=
 MAIL_PASS=
-JWT_SECRET=
+RESET_TOKEN_MINUTES=60
 ```
 
-### 4. Ejecutar el servidor
+Iniciar:
+
+```bash
+npm run dev
+```
+
+o:
 
 ```bash
 npm start
 ```
 
-## Estructura General
+## Autenticación
 
-El proyecto implementa una arquitectura en capas que separa responsabilidades entre:
+Las rutas protegidas esperan:
 
-- Routes
-- Controllers
-- Services
-- Repositories
-- DAOs
-- Models
-- DTOs
-- Middlewares
+```text
+Authorization: Bearer <JWT>
+```
 
-Esta organización facilita el mantenimiento, escalabilidad y reutilización del código.
+### Sesiones
 
----
+| Método | Ruta | Acceso | Función |
+|---|---|---|---|
+| POST | `/api/sessions/register` | Público | Registrar usuario y crear carrito |
+| POST | `/api/sessions/login` | Público | Validar credenciales y generar JWT |
+| GET | `/api/sessions/current` | USER / ADMIN | Obtener usuario mediante DTO |
+| POST | `/api/sessions/forgot-password` | Público | Generar token de recuperación |
+| POST | `/api/sessions/reset-password` | Público | Cambiar contraseña con token |
 
-Desarrollado como parte del Proyecto Final de Programación Backend II: Diseño y Arquitectura.
+Las contraseñas se almacenan mediante bcrypt. El registro público crea usuarios con rol `user`; la asignación de `admin` queda restringida a operaciones administrativas.
 
-Autor: **Cielo Ferrer**
+## Usuarios
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | `/api/users` | ADMIN |
+| GET | `/api/users/:uid` | ADMIN |
+| POST | `/api/users` | ADMIN |
+| PUT | `/api/users/:uid` | ADMIN |
+| DELETE | `/api/users/:uid` | ADMIN |
+
+## Productos
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | `/api/products` | Público |
+| GET | `/api/products/:pid` | Público |
+| POST | `/api/products` | ADMIN |
+| PUT | `/api/products/:pid` | ADMIN |
+| DELETE | `/api/products/:pid` | ADMIN |
+
+La consulta de productos admite:
+
+```text
+/api/products?limit=10&page=1&sort=asc&category=notebooks&availability=true
+```
+
+La respuesta incluye paginación, página anterior/siguiente y enlaces navegables.
+
+## Carritos
+
+| Método | Ruta | Acceso | Función |
+|---|---|---|---|
+| POST | `/api/carts` | USER / ADMIN | Crear carrito |
+| GET | `/api/carts/:cid` | USER / ADMIN | Obtener carrito con productos |
+| POST | `/api/carts/:cid/product/:pid` | USER / ADMIN | Agregar producto |
+| PUT | `/api/carts/:cid` | USER / ADMIN | Reemplazar productos |
+| PUT | `/api/carts/:cid/product/:pid` | USER / ADMIN | Actualizar cantidad |
+| DELETE | `/api/carts/:cid/product/:pid` | USER / ADMIN | Quitar producto |
+| DELETE | `/api/carts/:cid` | USER / ADMIN | Vaciar carrito |
+| POST | `/api/carts/:cid/purchase` | USER / ADMIN | Comprar y generar ticket |
+
+La compra comprueba el stock disponible. Los productos con stock suficiente se descuentan y se incluyen en el ticket; los que no pueden comprarse permanecen en el carrito.
+
+## Recuperación de contraseña
+
+El flujo es:
+
+1. `POST /api/sessions/forgot-password` con `{ "email": "..." }`.
+2. Se genera un token aleatorio almacenando únicamente su hash.
+3. El token expira según `RESET_TOKEN_MINUTES`.
+4. Con `POST /api/sessions/reset-password` se envía `{ "token": "...", "password": "..." }`.
+5. No se permite reutilizar una contraseña anterior.
+6. El token se invalida después de utilizarse.
+
+Si Nodemailer no está configurado, el endpoint devuelve un token de desarrollo para poder probar el flujo localmente. En un entorno real se deben configurar `MAIL_USER` y `MAIL_PASS`.
+
+## Health check
+
+```text
+GET /health
+```
+
+Devuelve el estado básico de la API.
+
+## Importante
+
+No subir `.env` al repositorio. Usar `.env.example` como plantilla.
+
+Proyecto final de Programación Backend II — implementación orientada a arquitectura, seguridad y persistencia con MongoDB.

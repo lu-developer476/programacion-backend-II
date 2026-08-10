@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import config from '../config/config.js';
 
 export default class CustomRouter {
     constructor() {
@@ -29,34 +30,31 @@ export default class CustomRouter {
         this.router.delete(path, this.handlePolicies(policies), this.generateCustomResponses, ...callbacks);
     }
 
-    // Middleware 1: Estandarizar respuestas
     generateCustomResponses(req, res, next) {
-        res.sendSuccess = payload => res.json({ status: "success", payload });
-        res.sendUserError = error => res.status(400).json({ status: "error", error });
-        res.sendServerError = error => res.status(500).json({ status: "error", error });
+        res.sendSuccess = (payload, status = 200) => res.status(status).json({ status: 'success', payload });
+        res.sendUserError = (error, status = 400) => res.status(status).json({ status: 'error', error });
+        res.sendServerError = (error) => res.status(500).json({ status: 'error', error });
         next();
     }
 
-    // Middleware 2: Manejo de Políticas de Autorización con JWT
-    handlePolicies(policies) {
+    handlePolicies(policies = ['PUBLIC']) {
         return (req, res, next) => {
             if (policies.includes('PUBLIC')) return next();
 
             const authHeader = req.headers.authorization;
-            if (!authHeader) return res.status(401).json({ status: "error", error: "No autorizado - Token ausente" });
-
-            const token = authHeader.split(' ')[1];
-
-            try {
-                const user = jwt.verify(token, process.env.JWT_SECRET || 'secretKey');
-                req.user = user;
-            } catch (error) {
-                return res.status(401).json({ status: "error", error: "Token inválido o expirado" });
+            if (!authHeader?.startsWith('Bearer ')) {
+                return res.status(401).json({ status: 'error', error: 'Token ausente o formato inválido' });
             }
 
-            // Verificamos si el rol del usuario cumple con las políticas requeridas
-            if (!policies.includes(req.user.role.toUpperCase())) {
-                return res.status(403).json({ status: "error", error: "Prohibido - No tenés permisos" });
+            try {
+                const token = authHeader.slice(7);
+                req.user = jwt.verify(token, config.jwtSecret);
+            } catch {
+                return res.status(401).json({ status: 'error', error: 'Token inválido o expirado' });
+            }
+
+            if (!policies.includes(req.user.role?.toUpperCase())) {
+                return res.status(403).json({ status: 'error', error: 'No tenés permisos para realizar esta operación' });
             }
 
             next();
