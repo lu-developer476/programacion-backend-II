@@ -1,23 +1,10 @@
 import { userModel } from '../models/user.model.js';
 
 export default class UserMongoDAO {
-    async get() {
-        return await userModel.find();
-    }
-
-    async getById(id) {
-        return await userModel.findById(id);
-    }
-
-    async getByEmail(email) {
-        return await userModel.findOne({ email });
-    }
-
-    async create(user) {
-        return await userModel.create(user);
-    }
-
-    async update(id, user) {
-        return await userModel.findByIdAndUpdate(id, user, { new: true });
-    }
+    async get() { return userModel.find().populate('cart'); }
+    async getById(id) { return userModel.findById(id).populate('cart'); }
+    async getByEmail(email) { return userModel.findOne({ email }); }
+    async create(user) { return userModel.create(user); }
+    async update(id, user) { return userModel.findByIdAndUpdate(id, user, { new: true, runValidators: true }); }
+    async delete(id) { return userModel.findByIdAndDelete(id); }
 }
