@@ -1,0 +1,12 @@
+import mongoose from 'mongoose';
+
+const ticketSchema = new mongoose.Schema(
+  {
+    event: { type: mongoose.Schema.Types.ObjectId, ref: 'events', required: true, index: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
+    status: { type: String, enum: ['confirmed', 'cancelled'], default: 'confirmed' },
+  },
+  { timestamps: true },
+);
+ticketSchema.index({ event: 1, user: 1 }, { unique: true });
+export const Ticket = mongoose.model('tickets', ticketSchema);
